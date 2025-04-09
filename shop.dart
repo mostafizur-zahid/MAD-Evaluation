@@ -5,17 +5,26 @@ void main() {
 }
 
 class ShoppingApp extends StatelessWidget {
-  const ShoppingApp({Key? key}) : super(key: key);
+  const ShoppingApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Shopping App',
+      title: 'Flutter Shopping App',
       theme: ThemeData(
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
+        ),
       ),
       home: const HomeScreen(),
+      routes: {
+        '/home': (context) => const HomeScreen(),
+        '/cart': (context) => const CartScreen(),
+        '/profile': (context) => const ProfileScreen(),
+      },
       debugShowCheckedModeBanner: false,
     );
   }
@@ -28,6 +37,8 @@ class Product {
   final String description;
   final double price;
   final String imageUrl;
+  final List<String> features;
+  bool isInCart;
 
   Product({
     required this.id,
@@ -35,447 +46,448 @@ class Product {
     required this.description,
     required this.price,
     required this.imageUrl,
+    required this.features,
+    this.isInCart = false,
   });
 }
 
-// Cart Item Model
-class CartItem {
-  final Product product;
-  int quantity;
-
-  CartItem({required this.product, this.quantity = 1});
-}
-
-// Cart Provider (Simple State Management)
-class CartProvider extends ChangeNotifier {
-  final List<CartItem> _items = [];
-
-  List<CartItem> get items => _items;
-
-  int get itemCount => _items.fold(0, (sum, item) => sum + item.quantity);
-
-  double get totalAmount => _items.fold(
-    0.0,
-    (sum, item) => sum + (item.product.price * item.quantity),
-  );
-
-  void addItem(Product product) {
-    final existingItemIndex = _items.indexWhere(
-      (item) => item.product.id == product.id,
-    );
-
-    if (existingItemIndex >= 0) {
-      _items[existingItemIndex].quantity += 1;
-    } else {
-      _items.add(CartItem(product: product));
-    }
-    notifyListeners();
-  }
-
-  void removeItem(int productId) {
-    _items.removeWhere((item) => item.product.id == productId);
-    notifyListeners();
-  }
-
-  void increaseQuantity(int productId) {
-    final item = _items.firstWhere((item) => item.product.id == productId);
-    item.quantity += 1;
-    notifyListeners();
-  }
-
-  void decreaseQuantity(int productId) {
-    final existingItemIndex = _items.indexWhere(
-      (item) => item.product.id == productId,
-    );
-
-    if (_items[existingItemIndex].quantity > 1) {
-      _items[existingItemIndex].quantity -= 1;
-    } else {
-      _items.removeAt(existingItemIndex);
-    }
-    notifyListeners();
-  }
-
-  void clearCart() {
-    _items.clear();
-    notifyListeners();
-  }
-}
-
-// Global Cart Instance (for simplicity)
-final cartProvider = CartProvider();
-
-// Sample Products Data
+// Sample product data
 final List<Product> products = [
   Product(
     id: 1,
     name: 'Poco X6 Neo 5G',
     description:
-        'The Poco X6 Neo 5G smartphone features a powerful processor, '
-        'high-resolution display, and long-lasting battery life. '
-        'Perfect for gaming, streaming, and everyday use.',
+        'A powerful smartphone with cutting-edge features, exceptional camera quality, and long-lasting battery life, perfect for tech enthusiasts and casual users alike.',
     price: 299.99,
     imageUrl:
         'https://5.imimg.com/data5/SELLER/Default/2024/7/434056869/CU/VT/ME/153717291/poco-x6-neo-5g-astral-black-12gb-mobile-1000x1000.jpg',
+    features: [
+      '6.67" AMOLED Display',
+      'MediaTek Dimensity 6080',
+      '8GB RAM + 128GB Storage',
+      '108MP Main Camera',
+      '5000mAh Battery',
+      '33W Fast Charging',
+    ],
   ),
   Product(
     id: 2,
-    name: 'HP Laptop 15-FD0292TU',
+    name: 'HP Laptop 15-fd0292tu',
     description:
-        'The HP 15-FD0292TU laptop comes with Intel Core processor, '
-        'ample storage, and a vibrant display, making it perfect for '
-        'work and entertainment. Features include fast performance and '
-        'reliable connectivity.',
-    price: 699.99,
+        'Versatile laptop designed for productivity and entertainment with a sleek design, vibrant display, and reliable performance for everyday tasks and multimedia consumption.',
+    price: 649.99,
     imageUrl:
         'https://www.startech.com.bd/image/cache/catalog/laptop/hp-laptop/15-fd0292tu/15-fd0292tu-01-500x500.webp',
+    features: [
+      'Intel Core i5-1335U',
+      '15.6" FHD Display',
+      '8GB DDR4 RAM',
+      '512GB SSD Storage',
+      'Intel Iris Xe Graphics',
+      'Windows 11 Home',
+    ],
   ),
   Product(
     id: 3,
-    name: 'Nothing Buds Pro 2',
+    name: 'CMF Nothing Buds Pro 2',
     description:
-        'CMF by Nothing Buds Pro 2 Wireless Earphones deliver '
-        'exceptional sound quality with active noise cancellation. '
-        'These earbuds feature a comfortable fit, long battery life, '
-        'and quick charging capabilities.',
-    price: 129.99,
+        'Immersive wireless earbuds that deliver premium sound quality, active noise cancellation, and seamless connectivity in a compact and stylish design.',
+    price: 99.99,
     imageUrl:
         'https://sineen.com.bd/wp-content/uploads/2024/10/CMF-by-Nothing-Buds-Pro-2-Wireless-Earphones-1.jpg',
+    features: [
+      'Active Noise Cancellation',
+      'Bluetooth 5.3',
+      'Up to 39 Hours Battery',
+      'IP54 Water Resistance',
+      '11mm Dynamic Drivers',
+      'Ultra Low Latency',
+    ],
   ),
   Product(
     id: 4,
     name: 'Smart Watch Pro',
     description:
-        'This advanced smartwatch features health monitoring, '
-        'fitness tracking, smartphone notifications, and customizable '
-        'watch faces. Water-resistant with extended battery life, '
-        'perfect for active lifestyles.',
+        'Advanced smartwatch with comprehensive health tracking, notifications, and a sleek design that complements your active lifestyle.',
     price: 149.99,
     imageUrl: 'https://m.media-amazon.com/images/I/613vdOoh4oL._AC_SL1500_.jpg',
+    features: [
+      '1.4" AMOLED Display',
+      'Heart Rate Monitor',
+      'SpO2 Tracking',
+      'GPS Navigation',
+      '7-Day Battery Life',
+      '5ATM Water Resistance',
+    ],
   ),
   Product(
     id: 5,
-    name: 'Bluetooth Speaker',
+    name: 'Premium Bluetooth Speaker',
     description:
-        'Powerful Bluetooth speaker with crystal clear sound, '
-        'deep bass, and 360-degree audio. Features include water '
-        'resistance, long battery life, and portable design perfect '
-        'for outdoor activities.',
+        'Powerful portable speaker that delivers rich, room-filling sound with deep bass, clear highs, and exceptional durability for indoor and outdoor use.',
     price: 79.99,
     imageUrl:
         'https://cdn.thewirecutter.com/wp-content/media/2024/11/portablebluetoothspeakers-2048px-9481.jpg?auto=webp&quality=75&width=1024',
+    features: [
+      '20W Stereo Sound',
+      '24-Hour Playtime',
+      'IPX7 Waterproof',
+      'Bluetooth 5.2',
+      'Built-in Microphone',
+      'Compact & Portable',
+    ],
   ),
 ];
 
-// App Bar with Cart Button
-AppBar buildAppBar(BuildContext context, String title) {
-  return AppBar(
-    title: Text(title),
-    actions: [
-      Stack(
-        alignment: Alignment.center,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.shopping_cart),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const CartScreen()),
-              );
-            },
-          ),
-          Positioned(
-            right: 8,
-            top: 8,
-            child: Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-              child: Text(
-                '${cartProvider.itemCount}',
-                style: const TextStyle(color: Colors.white, fontSize: 10),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ],
-  );
-}
-
-// Navigation Drawer
-Widget buildDrawer(BuildContext context) {
-  return Drawer(
-    child: ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        DrawerHeader(
-          decoration: BoxDecoration(color: Theme.of(context).primaryColor),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundImage: NetworkImage(
-                  'https://media.licdn.com/dms/image/v2/D5603AQFGFxVlHalavg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1710967217852?e=2147483647&v=beta&t=c1ToKt_MAOpdICLk9Kwc3hGpQvoZ07yckbVqGe7ptKg',
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'Md. Mostafizur Rahman Zahid',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
-              Text(
-                'zahid15-5209@diu.edu.bd',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        ListTile(
-          leading: const Icon(Icons.home),
-          title: const Text('Home'),
-          onTap: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const HomeScreen()),
-            );
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.shopping_cart),
-          title: const Text('Cart'),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CartScreen()),
-            );
-          },
-        ),
-        ListTile(
-          leading: const Icon(Icons.person),
-          title: const Text('Profile'),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            );
-          },
-        ),
-      ],
-    ),
-  );
-}
-
-// Home Screen
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+// Drawer Component
+class AppDrawer extends StatelessWidget {
+  const AppDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: buildAppBar(context, 'Shop App'),
-      drawer: buildDrawer(context),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(10),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 2 / 3,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-        ),
-        itemCount: products.length,
-        itemBuilder: (ctx, index) {
-          return Card(
-            elevation: 5,
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(color: Colors.blue),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) =>
-                                  ProductDetailScreen(product: products[index]),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(4),
-                          topRight: Radius.circular(4),
-                        ),
-                        image: DecorationImage(
-                          image: NetworkImage(products[index].imageUrl),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
+                Text(
+                  'Tech Store',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        products[index].name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '\$${products[index].price.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            cartProvider.addItem(products[index]);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '${products[index].name} added to cart!',
-                                ),
-                                duration: const Duration(seconds: 2),
-                                action: SnackBarAction(
-                                  label: 'VIEW CART',
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (context) => const CartScreen(),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          child: const Text('Add to Cart'),
-                        ),
-                      ),
-                    ],
-                  ),
+                SizedBox(height: 8),
+                Text(
+                  'Find the latest tech products',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
                 ),
               ],
             ),
-          );
-        },
+          ),
+          ListTile(
+            leading: const Icon(Icons.home),
+            title: const Text('Home'),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/home');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.shopping_cart),
+            title: const Text('Cart'),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/cart');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('Profile'),
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/profile');
+            },
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.category),
+            title: const Text('Categories'),
+            onTap: () {
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.favorite),
+            title: const Text('Wishlist'),
+            onTap: () {
+              Navigator.pop(context);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
+            onTap: () {
+              Navigator.pop(context);
+            },
+          ),
+        ],
       ),
     );
   }
 }
 
-// Product Detail Screen
-class ProductDetailScreen extends StatelessWidget {
-  final Product product;
+// Home Screen
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
-  const ProductDetailScreen({Key? key, required this.product})
-    : super(key: key);
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
 
+class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: buildAppBar(context, 'Product Details'),
-      body: SingleChildScrollView(
+      appBar: AppBar(
+        title: const Text('Tech Store'),
+        actions: [
+          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            onPressed: () {
+              Navigator.pushNamed(context, '/cart');
+            },
+          ),
+        ],
+      ),
+      drawer: const AppDrawer(),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: const Text(
+              'Featured Products',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.75,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                return ProductCard(product: products[index]);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Product Card Widget
+class ProductCard extends StatelessWidget {
+  final Product product;
+
+  const ProductCard({super.key, required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductDetailsScreen(product: product),
+            ),
+          );
+        },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 300,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: NetworkImage(product.imageUrl),
-                  fit: BoxFit.cover,
-                ),
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+              child: Image.network(
+                product.imageUrl,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 120,
+                    color: Colors.grey[300],
+                    child: const Center(child: Icon(Icons.error)),
+                  );
+                },
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     product.name,
                     style: const TextStyle(
-                      fontSize: 24,
                       fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '\$${product.price.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      color: Theme.of(context).primaryColor,
-                      fontSize: 20,
+                    style: const TextStyle(
+                      color: Colors.blue,
                       fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      product.isInCart = true;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${product.name} added to cart'),
+                          duration: const Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 36),
+                    ),
+                    child: const Text('Add to Cart'),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Product Details Screen
+class ProductDetailsScreen extends StatelessWidget {
+  final Product product;
+
+  const ProductDetailsScreen({super.key, required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(product.name),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            onPressed: () {
+              Navigator.pushNamed(context, '/cart');
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Image.network(
+              product.imageUrl,
+              height: 300,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  height: 300,
+                  color: Colors.grey[300],
+                  child: const Center(child: Icon(Icons.error, size: 50)),
+                );
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.name,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '\$${product.price.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   const Text(
                     'Description',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     product.description,
-                    style: const TextStyle(fontSize: 16),
+                    style: const TextStyle(fontSize: 16, color: Colors.black87),
                   ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        cartProvider.addItem(product);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('${product.name} added to cart!'),
-                            duration: const Duration(seconds: 2),
-                            action: SnackBarAction(
-                              label: 'VIEW CART',
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const CartScreen(),
-                                  ),
-                                );
-                              },
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Key Features',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  ...product.features.map(
+                    (feature) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              feature,
+                              style: const TextStyle(fontSize: 16),
                             ),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        ],
                       ),
-                      child: const Text(
-                        'ADD TO CART',
-                        style: TextStyle(fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton(
+                    onPressed: () {
+                      product.isInCart = true;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Added to cart'),
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                    ),
+                    child: const Text(
+                      'Add to Cart',
+                      style: TextStyle(fontSize: 18),
                     ),
                   ),
                 ],
@@ -490,53 +502,30 @@ class ProductDetailScreen extends StatelessWidget {
 
 // Cart Screen
 class CartScreen extends StatefulWidget {
-  const CartScreen({Key? key}) : super(key: key);
+  const CartScreen({super.key});
 
   @override
   _CartScreenState createState() => _CartScreenState();
 }
 
 class _CartScreenState extends State<CartScreen> {
+  List<Product> getCartItems() {
+    return products.where((product) => product.isInCart).toList();
+  }
+
+  double getTotalPrice() {
+    return getCartItems().fold(0, (sum, product) => sum + product.price);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cartItems = getCartItems();
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Shopping Cart'),
-        actions: [
-          if (cartProvider.items.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder:
-                      (ctx) => AlertDialog(
-                        title: const Text('Clear Cart'),
-                        content: const Text(
-                          'Are you sure you want to clear your cart?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(ctx).pop(),
-                            child: const Text('CANCEL'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              cartProvider.clearCart();
-                              Navigator.of(ctx).pop();
-                              setState(() {});
-                            },
-                            child: const Text('CLEAR'),
-                          ),
-                        ],
-                      ),
-                );
-              },
-            ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Shopping Cart')),
+      drawer: const AppDrawer(),
       body:
-          cartProvider.items.isEmpty
+          cartItems.isEmpty
               ? const Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -546,10 +535,18 @@ class _CartScreenState extends State<CartScreen> {
                       size: 100,
                       color: Colors.grey,
                     ),
-                    SizedBox(height: 20),
+                    SizedBox(height: 16),
                     Text(
                       'Your cart is empty',
-                      style: TextStyle(fontSize: 20, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Add items to get started',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -558,72 +555,71 @@ class _CartScreenState extends State<CartScreen> {
                 children: [
                   Expanded(
                     child: ListView.builder(
-                      itemCount: cartProvider.items.length,
-                      itemBuilder: (ctx, index) {
-                        final cartItem = cartProvider.items[index];
-                        return Dismissible(
-                          key: Key(cartItem.product.id.toString()),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            color: Colors.red,
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 20),
-                            child: const Icon(
-                              Icons.delete,
-                              color: Colors.white,
-                            ),
+                      itemCount: cartItems.length,
+                      itemBuilder: (context, index) {
+                        final product = cartItems[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
-                          onDismissed: (_) {
-                            cartProvider.removeItem(cartItem.product.id);
-                            setState(() {});
-                          },
-                          child: Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                              vertical: 5,
-                            ),
-                            child: ListTile(
-                              leading: Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  image: DecorationImage(
-                                    image: NetworkImage(
-                                      cartItem.product.imageUrl,
-                                    ),
-                                    fit: BoxFit.cover,
-                                  ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              children: [
+                                ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    product.imageUrl,
+                                    width: 80,
+                                    height: 80,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        width: 80,
+                                        height: 80,
+                                        color: Colors.grey[300],
+                                        child: const Icon(Icons.error),
+                                      );
+                                    },
+                                  ),
                                 ),
-                              ),
-                              title: Text(cartItem.product.name),
-                              subtitle: Text(
-                                '\$${cartItem.product.price.toStringAsFixed(2)}',
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.remove),
-                                    onPressed: () {
-                                      cartProvider.decreaseQuantity(
-                                        cartItem.product.id,
-                                      );
-                                      setState(() {});
-                                    },
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        product.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '\$${product.price.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          color: Colors.blue,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Text(cartItem.quantity.toString()),
-                                  IconButton(
-                                    icon: const Icon(Icons.add),
-                                    onPressed: () {
-                                      cartProvider.increaseQuantity(
-                                        cartItem.product.id,
-                                      );
-                                      setState(() {});
-                                    },
+                                ),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
                                   ),
-                                ],
-                              ),
+                                  onPressed: () {
+                                    setState(() {
+                                      product.isInCart = false;
+                                    });
+                                  },
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -636,10 +632,10 @@ class _CartScreenState extends State<CartScreen> {
                       color: Colors.white,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.5),
+                          color: Colors.grey.withOpacity(0.3),
                           spreadRadius: 1,
                           blurRadius: 5,
-                          offset: const Offset(0, -2),
+                          offset: const Offset(0, -3),
                         ),
                       ],
                     ),
@@ -656,35 +652,32 @@ class _CartScreenState extends State<CartScreen> {
                               ),
                             ),
                             Text(
-                              '\$${cartProvider.totalAmount.toStringAsFixed(2)}',
-                              style: TextStyle(
+                              '\$${getTotalPrice().toStringAsFixed(2)}',
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).primaryColor,
+                                color: Colors.blue,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Checkout feature coming soon!',
-                                  ),
+                        ElevatedButton(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Checkout functionality coming soon!',
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                            ),
-                            child: const Text(
-                              'CHECKOUT',
-                              style: TextStyle(fontSize: 16),
-                            ),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 50),
+                          ),
+                          child: const Text(
+                            'Checkout',
+                            style: TextStyle(fontSize: 18),
                           ),
                         ),
                       ],
@@ -698,103 +691,131 @@ class _CartScreenState extends State<CartScreen> {
 
 // Profile Screen
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('My Profile')),
-      drawer: buildDrawer(context),
+      drawer: const AppDrawer(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 20),
-            const CircleAvatar(
-              radius: 60,
-              backgroundImage: NetworkImage(
-                'https://media.licdn.com/dms/image/v2/D5603AQFGFxVlHalavg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1710967217852?e=2147483647&v=beta&t=c1ToKt_MAOpdICLk9Kwc3hGpQvoZ07yckbVqGe7ptKg',
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 24),
+              CircleAvatar(
+                radius: 80,
+                backgroundImage: const NetworkImage(
+                  'https://media.licdn.com/dms/image/v2/D5603AQFGFxVlHalavg/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1710967217852?e=2147483647&v=beta&t=c1ToKt_MAOpdICLk9Kwc3hGpQvoZ07yckbVqGe7ptKg',
+                ),
+                onBackgroundImageError: (exception, stackTrace) {
+                  const Icon(Icons.person, size: 80);
+                },
               ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'Md. Mostafizur Rahman Zahid',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Daffodil International University',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 5),
-            const Text(
-              'ID: 221-15-5209',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 30),
-            const Divider(),
-            buildInfoItem(Icons.email, 'Email', 'zahid15-5209@diu.edu.bd'),
-            buildInfoItem(Icons.phone, 'Phone', '+880 1770480472'),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
+              const SizedBox(height: 24),
+              const Text(
+                'Md. Mostafizur Rahman Zahid',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Daffodil International University',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              const SizedBox(height: 32),
+              const ProfileInfoCard(
+                title: 'Personal Information',
+                items: [
+                  {'label': 'ID', 'value': '221-15-5209'},
+                  {'label': 'Email', 'value': 'zahid15-5209@diu.edu.bd'},
+                  {'label': 'Phone', 'value': '+880 1770480472'},
+                ],
+              ),
+              const SizedBox(height: 16),
+              const ProfileInfoCard(
+                title: 'Account Settings',
+                items: [
+                  {
+                    'label': 'Address',
+                    'value': 'Manage your delivery addresses',
+                  },
+                  {
+                    'label': 'Payment Methods',
+                    'value': 'Manage your payment options',
+                  },
+                  {
+                    'label': 'Notifications',
+                    'value': 'Customize notification preferences',
+                  },
+                ],
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Edit profile feature coming soon!'),
+                      content: Text('Edit profile functionality coming soon!'),
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  minimumSize: const Size(200, 50),
                 ),
-                child: const Text('EDIT PROFILE'),
+                child: const Text('Edit Profile'),
               ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Logout feature coming soon!'),
-                    ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: const Text('LOGOUT'),
-              ),
-            ),
-          ],
+              const SizedBox(height: 32),
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget buildInfoItem(IconData icon, String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.blue, size: 28),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+// Profile Info Card
+class ProfileInfoCard extends StatelessWidget {
+  final String title;
+  final List<Map<String, String>> items;
+
+  const ProfileInfoCard({super.key, required this.title, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            ...items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item['label']!,
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(item['value']!, style: const TextStyle(fontSize: 16)),
+                    if (items.last != item) const Divider(height: 24),
+                  ],
+                ),
               ),
-              Text(value, style: const TextStyle(fontSize: 16)),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
